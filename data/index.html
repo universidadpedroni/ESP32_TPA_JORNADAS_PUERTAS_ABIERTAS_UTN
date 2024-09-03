@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+</head>
+<body>
+  <h2>Tecnologias para la Automatizacion - UTN FRC</h2>
+  <div id="chart-container" class="container"></div>
+  
+  <button onclick="redirectToUpdate()">OTA Update</button>
+</body>
+<script>
+  var chart = new Highcharts.Chart({
+    chart: { renderTo: 'chart-container' },
+    title: { text: 'Datos de ensayo' },
+    series: [
+      {
+        name: 'Temp [C]',
+        data: [],
+      },
+      {
+        name: 'Hum [%]',
+        data: [],
+      },
+      {
+        name: 'Enc',
+        data: [],
+      },
+      {
+        name: 'Pot [%]',
+        data: [],
+      }
+    ],
+    yAxis: {
+      title: { text: 'Registro' },
+    },
+    xAxis: {
+      type: 'datetime',
+      dateTimeLabelFormats: { second: '%H:%M:%S' }
+    },
+    credits: { enabled: false }
+  });
+
+  function updateChart() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        var data = JSON.parse(this.responseText);
+
+        var x = (new Date()).getTime();
+        var yTemp = data.temperature;
+        var yHum = data.humidity;
+        var yEnc = data.encoder;
+        var yPot = data.pot;  // Multiply by 10 to improve the visualization
+
+        if (chart.series[0].data.length > 40) {
+          chart.series[0].addPoint([x, yTemp], true, true, true);
+          chart.series[1].addPoint([x, yHum], true, true, true);
+          chart.series[2].addPoint([x, yEnc], true, true, true);
+          chart.series[3].addPoint([x, yPot], true, true, true);
+        } else {
+          chart.series[0].addPoint([x, yTemp], true, false, true);
+          chart.series[1].addPoint([x, yHum], true, false, true);
+          chart.series[2].addPoint([x, yEnc], true, false, true);
+          chart.series[3].addPoint([x, yPot], true, false, true);
+        }
+      }
+    };
+    xhttp.open("GET", "/home?getJson", true);
+    xhttp.send();
+  }
+
+  function redirectToUpdate() {
+    window.location.href = "/update";
+  }
+
+  setInterval(updateChart, 1000); // 1000ms request interval
+</script>
+</html>
