@@ -18,11 +18,12 @@
 
 // OTA
 #include <AsyncElegantOTA.h>
-
+const char* ssid = "";
+const char* password = "";
 //const char* ssid = "iPhone de Juan";
 //const char* password = "HelpUsObiJuan";
-const char* ssid = "ACNET2"
-const char* password = "";
+//const char* ssid = "ACNET2";
+//const char* password = "";
 //const char* ssid = "TheShield";
 //const char* password = "JamesBond007";
 //#define CONNECT_TIME 10000
@@ -53,6 +54,22 @@ void displayLogo(unsigned long interval){
 
 }
 
+void displayAPInfo(const char* ssid) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.setTextColor(SH110X_WHITE);
+
+    display.println(F("Modo AP Activado"));
+    display.println();
+    display.println(F("SSID:"));
+    display.println(ssid);
+    display.println();
+    display.println(F("IP:"));
+    display.println(WiFi.softAPIP()); // Muestra la IP del AP
+
+    display.display(); // Actualiza el display con la nueva información
+}
 
 void displayInit(){
   display.begin(I2C_ADDRESS, true); // Address 0x3C default
@@ -105,22 +122,41 @@ void spiffsInit(){
 
 }
 
-void wifiInit(){
-  
-  bool resultado;
-  WiFi.mode(WIFI_STA);
-  WiFiManager wm;
-  
-  resultado = wm.autoConnect(ssid, password);
-  
-  if(!resultado){
-    Serial.println("No se pudo conectar a la red. Llamen a los Avengers");
-  }
-  else{
-    Serial.println("Conectadazo");
-  }
-  
+void wifiInit() {
+    bool resultado;
+    WiFi.mode(WIFI_STA);
+    WiFiManager wm;
+
+    if (digitalRead(PIN_ENC_PUSH) == LOW) {
+        Serial.println("Configurando WiFi...");
+        
+        wm.setConfigPortalTimeout(120);
+        Serial.println(wm.getDefaultAPName());
+        const char* apName = "OnDemandAP"; // Asegúrate de que este es el SSID que deseas
+        displayAPInfo(wm.getDefaultAPName().c_str());
+        if (!wm.startConfigPortal(apName)) {
+            Serial.println("Failed to connect and hit timeout");
+            delay(3000);
+            ESP.restart();
+            delay(5000);
+        } else {
+            // Aquí sabemos que el AP está activo y el portal está corriendo
+            
+        }
+
+        Serial.println("Connected...yeey :)");
+    } else {
+        resultado = wm.autoConnect(ssid, password);
+
+        if (!resultado) {
+            Serial.println("No se pudo conectar a la red. Llamen a los Avengers");
+        } else {
+            Serial.println("Conectadazo");
+        }
+    }
 }
+
+
 
 void displayWiFi(){
   display.clearDisplay();
@@ -178,7 +214,7 @@ void displayUpdate(){
         display.setCursor(0,0);
         display.setTextSize(1);
         display.println("         DATOS");
-        display.printf("Temp:\t%.2fC\nHum:\t%.2f%%\nEnc:\t%.2f\nPot:\t%.2f\n",
+        display.printf("Temp: %.2fC\nHum:  %.2f%%\nEnc:  %.2f\nPot:  %.2f\n",
                        signals.temp,
                        signals.hum,
                        signals.enc,
@@ -187,7 +223,8 @@ void displayUpdate(){
         if (WiFi.status() != WL_CONNECTED) {
             display.println("WiFi no conectado");
         } else {
-            display.printf("IP: %s%s", WiFi.localIP().toString(), "/home");
+            display.printf("IP: %s%s\n", WiFi.localIP().toString(), "/home");
+            display.printf("RSSI: %d dBm\n", WiFi.RSSI());
         }
         
 
@@ -255,5 +292,6 @@ void loop() {
   displayUpdate();
   displayLogo(120000);
   parpadeo.update(signals.enc * 10);
+ 
 }
 
